@@ -1,24 +1,20 @@
 package utils;
 
+import io.github.cdimascio.dotenv.Dotenv;
+
 public class ConfigManager {
 
-    public static String getBaseUrl() {
-        return System.getenv("BASE_URL");
-    }
+    private static final Dotenv dotenv = Dotenv.load();
 
     public static String getApiBaseUrl() {
-        return System.getenv("API_BASE_URL");
+        return dotenv.get("API_BASE_URL");
     }
 
     public static String getUsername() {
-        return System.getenv("USERNAME");
+        return dotenv.get("USERNAME");
     }
 
     public static String getPassword() {
-        return System.getenv("PASSWORD");
-    }
-
-    public static String getBrowser() {
-        return System.getenv("BROWSER");
+        return dotenv.get("PASSWORD");
     }
 }
