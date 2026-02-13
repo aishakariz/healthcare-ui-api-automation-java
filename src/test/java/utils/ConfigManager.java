@@ -4,7 +4,10 @@ import io.github.cdimascio.dotenv.Dotenv;
 
 public class ConfigManager {
 
-    private static final Dotenv dotenv = Dotenv.load();
+    private static final Dotenv dotenv =
+            Dotenv.configure()
+                    .ignoreIfMissing()
+                    .load();
 
     public static String getApiBaseUrl() {
         return dotenv.get("API_BASE_URL");
