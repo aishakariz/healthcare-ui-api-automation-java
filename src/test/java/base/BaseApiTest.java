@@ -6,8 +6,12 @@ import io.restassured.builder.ResponseSpecBuilder;
 import io.restassured.specification.RequestSpecification;
 import io.restassured.specification.ResponseSpecification;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.extension.ExtendWith;
 import utils.ConfigManager;
+import utils.TestListener;
 
+
+@ExtendWith(TestListener.class)
 public class BaseApiTest {
 
     protected static RequestSpecification requestSpec;
