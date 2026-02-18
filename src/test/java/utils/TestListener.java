@@ -7,17 +7,12 @@ import org.junit.jupiter.api.extension.ExtensionContext;
 
 public class TestListener implements AfterTestExecutionCallback {
 
-
-
     public void afterTestExecution(ExtensionContext context) throws Exception {
 
+        if (context.getExecutionException().isPresent()) {
 
-              if(context.getExecutionException().isPresent()){
-
-                  BaseTest.attachScreenShot();
-              }
+            BaseTest.attachScreenShot();
         }
-
-
     }
+}
 

@@ -1,32 +1,40 @@
 package base;
 
 import io.qameta.allure.Allure;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.openqa.selenium.OutputType;
 import org.openqa.selenium.TakesScreenshot;
 import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.chrome.ChromeDriver;
 
 import java.io.ByteArrayInputStream;
+import java.time.Duration;
 
 public class BaseTest {
 
-       protected static WebDriver driver;
+    protected static WebDriver driver;
 
-       public static void attachScreenShot(){
+    @BeforeEach
+    public void setUp() {
+        driver = new ChromeDriver();
+        driver.manage().window().maximize();
+        driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(10));
+        driver.get("https://o3.openmrs.org/openmrs/spa/login");
+    }
 
-           if(driver!=null){
+    @AfterEach
+    public void tearDown() {
+        driver.quit();
+    }
 
-               byte[] screenshot=((TakesScreenshot)driver)
-                       .getScreenshotAs(OutputType.BYTES);
+    public static void attachScreenShot() {
 
-
-               Allure.addAttachment("Screenshot",
-                       new ByteArrayInputStream(screenshot));
-
-           }
-
-       }
-
-
-
-
+        if (driver != null) {
+            byte[] screenshot = ((TakesScreenshot) driver)
+                    .getScreenshotAs(OutputType.BYTES);
+            Allure.addAttachment("Screenshot",
+                    new ByteArrayInputStream(screenshot));
+        }
+    }
 }
