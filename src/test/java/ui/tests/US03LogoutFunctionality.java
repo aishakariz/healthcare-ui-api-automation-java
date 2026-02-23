@@ -256,5 +256,56 @@ public class US03LogoutFunctionality extends BaseTest {
         Assertions.assertEquals(newLanguage, currentLanguage,
                 "Language should be updated successfully");
     }
+
+    @Test
+    @Order(6)
+    @DisplayName("[On hold] AC6 - Verify user can change password and login with new password")
+    void verifyUserCanChangePasswordAndLoginWithNewPassword() {
+
+    }
+
+    @Test
+    @Order(7)
+    @DisplayName("AC7 - Verify user cannot return to main page after logout using browser back button")
+    void verifyUserCannotNavigateBackAfterLogout() {
+
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(15));
+
+        //1.Login with valid credentials
+        LoginPage loginPage = new LoginPage(driver);
+        loginPage.login();
+
+        // Wait until dashboard loads
+        wait.until(ExpectedConditions.urlContains("/home"));
+
+        //2.Click profile menu/icon
+        wait.until(ExpectedConditions.elementToBeClickable(
+                By.cssSelector("div[data-extension-id='user-menu-button'] button")
+        )).click();
+
+        //3.Click Logout
+        wait.until(ExpectedConditions.elementToBeClickable(
+                By.xpath("//button[normalize-space()='Logout']")
+        )).click();
+
+        //4.Verify user is on Log in page
+        wait.until(ExpectedConditions.urlContains("/login"));
+
+        Assertions.assertTrue(driver.getCurrentUrl().contains("/login"),
+                "User should be redirected to Login page after logout");
+
+        //5.Click browser Back button
+        driver.navigate().back();
+
+        // Small wait for navigation
+        BrowserUtils.waitFor(2);
+
+        //6.Verify user CANNOT return to main page
+        String currentUrl = driver.getCurrentUrl();
+        System.out.println("Current URL after back: " + currentUrl);
+
+        Assertions.assertTrue(currentUrl.contains("/login"),
+                "User should NOT be able to access dashboard after logout using back button");
+    }
 }
 
