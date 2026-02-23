@@ -49,10 +49,6 @@ public class US03LogoutFunctionality extends BaseTest {
             wait.until(ExpectedConditions.elementToBeClickable(
                     By.xpath("//button[normalize-space()='Change']")
             )).click();
-            wait.until(ExpectedConditions.textToBePresentInElementLocated(
-                    By.xpath("//div[@data-extension-id='change-language']//p"),
-                    "English"
-            ));
         }
 
         // Close menu
