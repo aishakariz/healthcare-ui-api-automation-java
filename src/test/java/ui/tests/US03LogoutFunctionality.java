@@ -1,9 +1,7 @@
 package ui.tests;
 
 import base.BaseTest;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.interactions.Actions;
@@ -11,30 +9,62 @@ import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
 import ui.pages.DashboardPage;
 import ui.pages.LoginPage;
+import utils.BrowserUtils;
 
 import java.time.Duration;
 import java.util.List;
 import java.util.stream.Collectors;
 
+@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
+
 public class US03LogoutFunctionality extends BaseTest {
 
     @Test
+    @Order(1)
     @DisplayName("AC1 - Verify that the user sees My Account message when user hovers over profile menu")
     void verifyMyAccountMessageOnHover() {
+
         //1.Open the application.
         LoginPage loginPage = new LoginPage(driver);
-        DashboardPage dashboardPage = new DashboardPage(driver);
-
-        //2.Login with valid credentials.
         loginPage.login();
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(15));
 
-        //3.Locate the profile menu/icon (top right).
-        //4.Hover the mouse over the profile menu/icon.
+        //Make sure English is default language
+        wait.until(ExpectedConditions.elementToBeClickable(
+                By.cssSelector("div[data-extension-id='user-menu-button'] button")
+        )).click();
+
+        String currentLanguage = wait.until(ExpectedConditions.visibilityOfElementLocated(
+                By.xpath("//div[@data-extension-id='change-language']//p")
+        )).getText().trim();
+
+        if (!currentLanguage.equalsIgnoreCase("English")) {
+            wait.until(ExpectedConditions.elementToBeClickable(
+                    By.xpath("//div[@data-extension-id='change-language']//button[normalize-space()='Change']")
+            )).click();
+            wait.until(ExpectedConditions.elementToBeClickable(
+                    By.xpath("//span[normalize-space()='English']")
+            )).click();
+            wait.until(ExpectedConditions.elementToBeClickable(
+                    By.xpath("//button[normalize-space()='Change']")
+            )).click();
+        }
+
+        // Close menu
+        By profileBtn = By.cssSelector("div[data-extension-id='user-menu-button'] button");
+
+        // Make sure menu is closed
+        wait.until(ExpectedConditions.elementToBeClickable(profileBtn)).click();
+        WebElement profile = wait.until(ExpectedConditions.visibilityOfElementLocated(profileBtn));
+        WebElement serviceQueues = driver.findElement(By.xpath("//p[@class='P5kBN-q2g2nkNYCgydQ1vg==']"));
+
+        // Hover
         Actions actions = new Actions(driver);
-        actions.moveToElement(dashboardPage.profileIcon).perform();
+        actions.moveToElement(serviceQueues).perform();
+        actions.moveToElement(profile).perform();
 
         //5.Verify that the “My Account” message appears
-        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(5));
         WebElement message = wait.until(
                 ExpectedConditions.visibilityOfElementLocated(
                         By.cssSelector("span[role='tooltip'][aria-hidden='false']")));
@@ -45,6 +75,7 @@ public class US03LogoutFunctionality extends BaseTest {
     }
 
     @Test
+    @Order(2)
     @DisplayName("AC2 - Verify My Account dropdown displays expected options")
     void verifyMyAccountOptions() {
 
@@ -90,6 +121,7 @@ public class US03LogoutFunctionality extends BaseTest {
     }
 
     @Test
+    @Order(3)
     @DisplayName("AC3 - Verify user can log out and land on Log in page")
     void verifyUserCanLogoutSuccessfully() {
 
@@ -117,6 +149,7 @@ public class US03LogoutFunctionality extends BaseTest {
     }
 
     @Test
+    @Order(4)
     @DisplayName("AC4 - Verify English is the default Language")
     void verifyDefaultLanguageIsEnglish() {
 
@@ -140,4 +173,88 @@ public class US03LogoutFunctionality extends BaseTest {
         Assertions.assertEquals("English", languageText,
                 "Default language should be English");
     }
+
+    @Test
+    @Order(5)
+    @DisplayName("AC5 - User can change language and Italiano is not visible (only 13 languages shown)")
+    void verifyUserCanChangeLanguage_ItalianoNotVisible() {
+
+        //1.Login
+        LoginPage loginPage = new LoginPage(driver);
+        loginPage.login();
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(30));
+
+        //2.Open profile menu
+        wait.until(ExpectedConditions.elementToBeClickable(
+                By.cssSelector("div[data-extension-id='user-menu-button'] button")
+        )).click();
+
+        //3.Click Change next to Language
+        wait.until(ExpectedConditions.elementToBeClickable(
+                By.xpath("//div[@data-extension-id='change-language']//button[normalize-space()='Change']")
+        )).click();
+
+        //4.Verify language list displays
+        WebElement dialog = wait.until(ExpectedConditions.visibilityOfElementLocated(
+                By.cssSelector("div[role='dialog']")
+        ));
+        Assertions.assertTrue(dialog.isDisplayed(), "Language dialog should be displayed");
+
+        //5.Get ONLY visible language options (buttons)
+        List<WebElement> optionElements = wait.until(
+                ExpectedConditions.visibilityOfAllElementsLocatedBy(
+                        By.xpath("//span[@class='cds--radio-button__label-text']")
+                )
+        );
+
+        List<String> visibleLanguages = optionElements.stream()
+                .map(e -> e.getText().trim())
+                .filter(t -> !t.isEmpty())
+                // remove action buttons like Change/Cancel if they exist in same dialog
+                .filter(t -> !t.equalsIgnoreCase("Change"))
+                .filter(t -> !t.equalsIgnoreCase("Cancel"))
+                .distinct()
+                .collect(Collectors.toList());
+
+        //Assert only 14 languages are visible
+        Assertions.assertEquals(14, visibleLanguages.size(),
+                "User should see exactly 14 languages in the list");
+
+
+        //6.Select a visible language
+        String newLanguage = visibleLanguages.stream()
+                .filter(l -> !l.equalsIgnoreCase("English"))
+                .filter(l -> !l.equalsIgnoreCase("Italiano"))
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("No alternative language found to select"));
+
+        WebElement languageToSelect = optionElements.stream()
+                .filter(e -> e.getText().trim().equalsIgnoreCase(newLanguage))
+                .findFirst()
+                .orElseThrow(() -> new AssertionError(newLanguage + " was not found in the visible language list"));
+        languageToSelect.click();
+
+        //7.Click Change (confirm)
+        DashboardPage dashboardPage = new DashboardPage(driver);
+        dashboardPage.changeButton.click();
+        BrowserUtils.waitFor(3);
+
+        //8.Verify language changed (re-open menu to read label)
+        wait.until(ExpectedConditions.elementToBeClickable(
+                By.cssSelector("div[data-extension-id='user-menu-button'] button")
+        )).click();
+        BrowserUtils.waitFor(3);
+
+        String currentLanguage = wait.until(ExpectedConditions.visibilityOfElementLocated(
+                By.xpath("//a[@aria-label='Change language']//p")
+        )).getText().trim();
+        BrowserUtils.waitFor(3);
+
+        System.out.println("newLanguage = " + newLanguage);
+        System.out.println("currentLanguage = " + currentLanguage);
+
+        Assertions.assertEquals(newLanguage, currentLanguage,
+                "Language should be updated successfully");
+    }
 }
+
