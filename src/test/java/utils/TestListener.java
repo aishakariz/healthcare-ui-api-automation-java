@@ -29,9 +29,9 @@ public class TestListener implements AfterTestExecutionCallback {
 
     private void attachScreenshot() {
 
-        if (BaseTest.driver != null) {
+        if (BaseTest.getDriver() != null) {
 
-            byte[] screenshot = ((TakesScreenshot) BaseTest.driver)
+            byte[] screenshot = ((TakesScreenshot) BaseTest.getDriver())
                     .getScreenshotAs(OutputType.BYTES);
 
             Allure.addAttachment(

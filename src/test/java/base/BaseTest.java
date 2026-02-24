@@ -12,8 +12,11 @@ import java.io.ByteArrayInputStream;
 import java.time.Duration;
 
 public class BaseTest {
+    protected static WebDriver driver;
 
-    public static WebDriver driver;
+    public static WebDriver getDriver(){
+        return driver;
+    }
 
     @BeforeEach
     public void setUp() {
@@ -29,12 +32,9 @@ public class BaseTest {
     }
 
     public static void attachScreenShot() {
-
         if (driver != null) {
-            byte[] screenshot = ((TakesScreenshot) driver)
-                    .getScreenshotAs(OutputType.BYTES);
-            Allure.addAttachment("Screenshot",
-                    new ByteArrayInputStream(screenshot));
+            byte[] screenshot = ((TakesScreenshot) driver).getScreenshotAs(OutputType.BYTES);
+            Allure.addAttachment("Screenshot", new ByteArrayInputStream(screenshot));
         }
     }
 }
