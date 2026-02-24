@@ -3,6 +3,7 @@ package api;
 import base.BaseApiTest;
 import base.BaseTest;
 import io.restassured.RestAssured;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import utils.ConfigManager;
 
@@ -14,6 +15,7 @@ public class GetSessionTest extends BaseApiTest {
 
 
     @Test
+    @DisplayName("shouldAuthenticateUser")
     void shouldAuthenticateUser(){
 
 
