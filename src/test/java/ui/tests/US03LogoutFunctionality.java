@@ -10,6 +10,7 @@ import org.openqa.selenium.support.ui.WebDriverWait;
 import ui.pages.DashboardPage;
 import ui.pages.LoginPage;
 import utils.BrowserUtils;
+import utils.ConfigManager;
 
 import java.time.Duration;
 import java.util.List;
@@ -71,6 +72,9 @@ public class US03LogoutFunctionality extends BaseTest {
 
         Assertions.assertTrue(message.isDisplayed(), "account message should be visible");
         System.out.println(message.getText());
+
+        System.out.println("ConfigManager.getUsername() = " + ConfigManager.getUsername());
+        System.out.println("ConfigManager.getPassword() = " + ConfigManager.getPassword());
 
     }
 
@@ -307,5 +311,53 @@ public class US03LogoutFunctionality extends BaseTest {
         Assertions.assertTrue(currentUrl.contains("/login"),
                 "User should NOT be able to access dashboard after logout using back button");
     }
+
+    @Test
+    @Order(8)
+    @DisplayName("NEG_AC1 - Message should NOT appear before hover")
+    void verifyMessageNotVisibleBeforeHover() {
+
+        //1.Login with valid credentials.
+        LoginPage loginPage = new LoginPage(driver);
+        loginPage.login();
+
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+
+        // Wait until profile icon is visible (page fully loaded)
+        wait.until(ExpectedConditions.visibilityOfElementLocated(
+                By.cssSelector("div[data-extension-id='user-menu-button'] button")
+        ));
+
+        //2.Do NOT hover over profile icon.
+        // (Intentionally no Actions.moveToElement() here)
+
+        //3.Observe the UI.
+        // Locate ONLY tooltip that contains "My Account"
+        List<WebElement> myAccountTooltips = driver.findElements(
+                By.xpath("//span[@role='tooltip' and contains(normalize-space(.),'My Account')]")
+        );
+
+        //4.Verify that message should NOT appear before hover.
+        if (myAccountTooltips.isEmpty()) {
+
+            // Tooltip not in DOM at all → PASS
+            Assertions.assertTrue(true);
+
+        } else {
+
+            WebElement tooltip = myAccountTooltips.get(0);
+
+            String ariaHidden = tooltip.getAttribute("aria-hidden"); // "true" = hidden
+            boolean hiddenByAria = "true".equalsIgnoreCase(ariaHidden);
+
+            Assertions.assertTrue(hiddenByAria || !tooltip.isDisplayed(),
+                    "My Account tooltip should NOT be visible before hover");
+
+        }
+    }
 }
+
+
+
+
 

@@ -3,6 +3,7 @@ package ui.pages;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.support.FindBy;
+import utils.ConfigManager;
 
 public class LoginPage extends BasePage {
 
@@ -26,7 +27,7 @@ public class LoginPage extends BasePage {
         username.sendKeys("admin");
         //username.sendKeys(ConfigManager.getUsername()); --> Owner
         continueButton.click();
-        password.sendKeys("Admin123");
+        password.sendKeys(ConfigManager.getPassword());
         //password.sendKeys(ConfigManager.getPassword());
         loginButton.click();
 
