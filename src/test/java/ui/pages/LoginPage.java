@@ -25,6 +25,9 @@ public class LoginPage extends BasePage {
     @FindBy(xpath="//label[text()='Username']" )
     public WebElement usernameLabel;
 
+    @FindBy(xpath="//label[text()='Password']")
+    public WebElement passwordLabel;
+
 
     @FindBy(xpath = "//a[normalize-space()='Learn more']")
     public WebElement learnMoreLink;
