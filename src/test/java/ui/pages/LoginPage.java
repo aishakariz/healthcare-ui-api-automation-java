@@ -24,7 +24,7 @@ public class LoginPage extends BasePage {
     public WebElement loginButton;
 
     public void login()  {
-        username.sendKeys("admin");
+        username.sendKeys(ConfigManager.getUsername());
         //username.sendKeys(ConfigManager.getUsername()); --> Owner
         continueButton.click();
         password.sendKeys(ConfigManager.getPassword());

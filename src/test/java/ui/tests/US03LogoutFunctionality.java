@@ -50,6 +50,7 @@ public class US03LogoutFunctionality extends BaseTest {
             wait.until(ExpectedConditions.elementToBeClickable(
                     By.xpath("//button[normalize-space()='Change']")
             )).click();
+
         }
 
         // Close menu
@@ -72,9 +73,6 @@ public class US03LogoutFunctionality extends BaseTest {
 
         Assertions.assertTrue(message.isDisplayed(), "account message should be visible");
         System.out.println(message.getText());
-
-        System.out.println("ConfigManager.getUsername() = " + ConfigManager.getUsername());
-        System.out.println("ConfigManager.getPassword() = " + ConfigManager.getPassword());
 
     }
 
