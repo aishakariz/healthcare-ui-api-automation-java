@@ -22,6 +22,13 @@ public class LoginPage extends BasePage {
     @FindBy(xpath = "//button[@type='submit']")
     public WebElement loginButton;
 
+    @FindBy(xpath="//label[text()='Username']" )
+    public WebElement usernameLabel;
+
+
+    @FindBy(xpath = "//a[normalize-space()='Learn more']")
+    public WebElement learnMoreLink;
+
     public void login()  {
         username.sendKeys("admin");
         //username.sendKeys(ConfigManager.getUsername()); --> Owner
