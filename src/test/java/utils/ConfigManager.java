@@ -9,6 +9,10 @@ public class ConfigManager {
                     .ignoreIfMissing()
                     .load();
 
+    public static String getBaseUrl() {
+        return dotenv.get("BASE_URL");
+    }
+
     public static String getApiBaseUrl() {
         return dotenv.get("API_BASE_URL");
     }
