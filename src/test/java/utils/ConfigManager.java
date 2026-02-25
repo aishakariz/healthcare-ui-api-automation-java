@@ -18,10 +18,10 @@ public class ConfigManager {
     }
 
     public static String getUsername() {
-        return dotenv.get("USERNAME");
+        return dotenv.get("APP_USERNAME");
     }
 
     public static String getPassword() {
-        return dotenv.get("PASSWORD");
+        return dotenv.get("APP_PASSWORD");
     }
 }
