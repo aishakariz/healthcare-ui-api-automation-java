@@ -10,6 +10,7 @@ import org.openqa.selenium.support.ui.WebDriverWait;
 import ui.pages.DashboardPage;
 import ui.pages.LoginPage;
 import utils.BrowserUtils;
+import utils.ConfigManager;
 
 import java.time.Duration;
 import java.util.List;
@@ -49,6 +50,7 @@ public class US03LogoutFunctionality extends BaseTest {
             wait.until(ExpectedConditions.elementToBeClickable(
                     By.xpath("//button[normalize-space()='Change']")
             )).click();
+
         }
 
         // Close menu
@@ -256,5 +258,104 @@ public class US03LogoutFunctionality extends BaseTest {
         Assertions.assertEquals(newLanguage, currentLanguage,
                 "Language should be updated successfully");
     }
+
+    @Test
+    @Order(6)
+    @DisplayName("[On hold] AC6 - Verify user can change password and login with new password")
+    void verifyUserCanChangePasswordAndLoginWithNewPassword() {
+
+    }
+
+    @Test
+    @Order(7)
+    @DisplayName("AC7 - Verify user cannot return to main page after logout using browser back button")
+    void verifyUserCannotNavigateBackAfterLogout() {
+
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(15));
+
+        //1.Login with valid credentials
+        LoginPage loginPage = new LoginPage(driver);
+        loginPage.login();
+
+        // Wait until dashboard loads
+        wait.until(ExpectedConditions.urlContains("/home"));
+
+        //2.Click profile menu/icon
+        wait.until(ExpectedConditions.elementToBeClickable(
+                By.cssSelector("div[data-extension-id='user-menu-button'] button")
+        )).click();
+
+        //3.Click Logout
+        wait.until(ExpectedConditions.elementToBeClickable(
+                By.xpath("//button[normalize-space()='Logout']")
+        )).click();
+
+        //4.Verify user is on Log in page
+        wait.until(ExpectedConditions.urlContains("/login"));
+
+        Assertions.assertTrue(driver.getCurrentUrl().contains("/login"),
+                "User should be redirected to Login page after logout");
+
+        //5.Click browser Back button
+        driver.navigate().back();
+
+        // Small wait for navigation
+        BrowserUtils.waitFor(2);
+
+        //6.Verify user CANNOT return to main page
+        String currentUrl = driver.getCurrentUrl();
+        System.out.println("Current URL after back: " + currentUrl);
+
+        Assertions.assertTrue(currentUrl.contains("/login"),
+                "User should NOT be able to access dashboard after logout using back button");
+    }
+
+    @Test
+    @Order(8)
+    @DisplayName("NEG_AC1 - Message should NOT appear before hover")
+    void verifyMessageNotVisibleBeforeHover() {
+
+        //1.Login with valid credentials.
+        LoginPage loginPage = new LoginPage(driver);
+        loginPage.login();
+
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+
+        // Wait until profile icon is visible (page fully loaded)
+        wait.until(ExpectedConditions.visibilityOfElementLocated(
+                By.cssSelector("div[data-extension-id='user-menu-button'] button")
+        ));
+
+        //2.Do NOT hover over profile icon.
+        // (Intentionally no Actions.moveToElement() here)
+
+        //3.Observe the UI.
+        // Locate ONLY tooltip that contains "My Account"
+        List<WebElement> myAccountTooltips = driver.findElements(
+                By.xpath("//span[@role='tooltip' and contains(normalize-space(.),'My Account')]")
+        );
+
+        //4.Verify that message should NOT appear before hover.
+        if (myAccountTooltips.isEmpty()) {
+
+            // Tooltip not in DOM at all → PASS
+            Assertions.assertTrue(true);
+
+        } else {
+
+            WebElement tooltip = myAccountTooltips.get(0);
+
+            String ariaHidden = tooltip.getAttribute("aria-hidden"); // "true" = hidden
+            boolean hiddenByAria = "true".equalsIgnoreCase(ariaHidden);
+
+            Assertions.assertTrue(hiddenByAria || !tooltip.isDisplayed(),
+                    "My Account tooltip should NOT be visible before hover");
+
+        }
+    }
 }
+
+
+
+
 

@@ -24,4 +24,5 @@ public class ConfigManager {
     public static String getPassword() {
         return dotenv.get("APP_PASSWORD");
     }
+
 }
