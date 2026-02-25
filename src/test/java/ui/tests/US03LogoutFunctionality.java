@@ -10,7 +10,6 @@ import org.openqa.selenium.support.ui.WebDriverWait;
 import ui.pages.DashboardPage;
 import ui.pages.LoginPage;
 import utils.BrowserUtils;
-import utils.ConfigManager;
 
 import java.time.Duration;
 import java.util.List;
