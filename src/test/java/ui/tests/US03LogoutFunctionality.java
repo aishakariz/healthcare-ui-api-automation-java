@@ -10,6 +10,7 @@ import org.openqa.selenium.support.ui.WebDriverWait;
 import ui.pages.DashboardPage;
 import ui.pages.LoginPage;
 import utils.BrowserUtils;
+import utils.ConfigManager;
 
 import java.time.Duration;
 import java.util.List;
@@ -20,15 +21,20 @@ import java.util.stream.Collectors;
 
 public class US03LogoutFunctionality extends BaseTest {
 
+    WebDriverWait wait;
+    LoginPage loginPage;
+
     @Test
     @Order(1)
+    @Tag("smoke")
     @DisplayName("AC1 - Verify that the user sees My Account message when user hovers over profile menu")
     void verifyMyAccountMessageOnHover() {
 
         //1.Open the application.
-        LoginPage loginPage = new LoginPage(driver);
+        //TODO : using global variable make sure it work in this test first
+        loginPage = new LoginPage(driver);
         loginPage.login();
-        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(15));
+        wait = new WebDriverWait(driver, Duration.ofSeconds(15));
 
         //Make sure English is default language
         wait.until(ExpectedConditions.elementToBeClickable(
@@ -77,6 +83,7 @@ public class US03LogoutFunctionality extends BaseTest {
 
     @Test
     @Order(2)
+    @Tag("smoke")
     @DisplayName("AC2 - Verify My Account dropdown displays expected options")
     void verifyMyAccountOptions() {
 
@@ -123,6 +130,7 @@ public class US03LogoutFunctionality extends BaseTest {
 
     @Test
     @Order(3)
+    @Tag("smoke")
     @DisplayName("AC3 - Verify user can log out and land on Log in page")
     void verifyUserCanLogoutSuccessfully() {
 
@@ -151,6 +159,7 @@ public class US03LogoutFunctionality extends BaseTest {
 
     @Test
     @Order(4)
+    @Tag("smoke")
     @DisplayName("AC4 - Verify English is the default Language")
     void verifyDefaultLanguageIsEnglish() {
 
@@ -177,6 +186,7 @@ public class US03LogoutFunctionality extends BaseTest {
 
     @Test
     @Order(5)
+    @Tag("regression")
     @DisplayName("AC5 - User can change language and Italiano is not visible (only 13 languages shown)")
     void verifyUserCanChangeLanguage_ItalianoNotVisible() {
 
@@ -260,6 +270,7 @@ public class US03LogoutFunctionality extends BaseTest {
 
     @Test
     @Order(6)
+    @Tag("regression")
     @DisplayName("[On hold] AC6 - Verify user can change password and login with new password")
     void verifyUserCanChangePasswordAndLoginWithNewPassword() {
 
@@ -267,6 +278,7 @@ public class US03LogoutFunctionality extends BaseTest {
 
     @Test
     @Order(7)
+    @Tag("smoke")
     @DisplayName("AC7 - Verify user cannot return to main page after logout using browser back button")
     void verifyUserCannotNavigateBackAfterLogout() {
 
@@ -311,6 +323,7 @@ public class US03LogoutFunctionality extends BaseTest {
 
     @Test
     @Order(8)
+    @Tag("regression")
     @DisplayName("NEG_AC1 - Message should NOT appear before hover")
     void verifyMessageNotVisibleBeforeHover() {
 
@@ -351,6 +364,238 @@ public class US03LogoutFunctionality extends BaseTest {
                     "My Account tooltip should NOT be visible before hover");
 
         }
+    }
+
+    //TODO: Check if the test after this pass because the credential doesnt' work again
+
+    @Test
+    @Order(9)
+    @Tag("regression")
+    @DisplayName("NEG_AC1 - 02 Message should disappear after mouse moves away")
+    void verifyMessageDisappearsAfterMouseMovesAway() {
+
+        System.out.println("ConfigManager.getUsername() = " + ConfigManager.getUsername());
+        System.out.println("ConfigManager.getPassword() = " + ConfigManager.getPassword());
+
+        //1.Login
+        LoginPage loginPage = new LoginPage(driver);
+        loginPage.login();
+
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+
+        WebElement profileIcon = wait.until(ExpectedConditions.visibilityOfElementLocated(
+                By.cssSelector("div[data-extension-id='user-menu-button'] button")
+        ));
+
+        Actions actions = new Actions(driver);
+
+        //2.Hover profile icon → confirm message appears
+        actions.moveToElement(profileIcon).perform();
+
+        WebElement tooltip = wait.until(ExpectedConditions.visibilityOfElementLocated(
+                By.xpath("//span[@role='tooltip' and contains(normalize-space(.),'My Account')]")
+        ));
+
+        Assertions.assertTrue(tooltip.isDisplayed(),
+                "Tooltip should appear after hover");
+
+        //3.Move mouse away to different area (move to body)
+        WebElement body = driver.findElement(By.tagName("body"));
+        actions.moveToElement(body, 0, 0).perform();
+
+        //4.Verify message disappears
+        wait.until(ExpectedConditions.invisibilityOfElementLocated(
+                By.xpath("//span[@role='tooltip' and contains(normalize-space(.),'My Account')]")
+        ));
+
+        List<WebElement> tooltipAfterMove = driver.findElements(
+                By.xpath("//span[@role='tooltip' and contains(normalize-space(.),'My Account')]")
+        );
+
+        boolean stillVisible = !tooltipAfterMove.isEmpty() &&
+                tooltipAfterMove.get(0).isDisplayed();
+
+        Assertions.assertFalse(stillVisible,
+                "Tooltip should disappear after mouse moves away");
+    }
+
+    @Test
+    @Order(10)
+    @Tag("regression")
+    @DisplayName("NEG_AC2 - 01 Menu should close when clicking outside")
+    void verifyMenuClosesWhenClickingOutside() {
+
+        //1.Login
+        LoginPage loginPage = new LoginPage(driver);
+        loginPage.login();
+
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+
+        //2.Click profile icon to open menu
+        WebElement profileIcon = wait.until(ExpectedConditions.elementToBeClickable(
+                By.cssSelector("div[data-extension-id='user-menu-button'] button")
+        ));
+        profileIcon.click();
+
+        // Wait until menu options are visible
+        wait.until(ExpectedConditions.visibilityOfElementLocated(
+                By.xpath("//a[contains(@class,'cds--switcher__item-link')]")
+        ));
+
+        //3.Click outside the menu (click on body)
+        WebElement body = driver.findElement(By.tagName("body"));
+        body.click();
+
+
+        //4.Verify menu is closed (options no longer visible)
+        wait.until(ExpectedConditions.invisibilityOfElementLocated(
+                By.xpath("//a[contains(@class,'cds--switcher__item-link')]")
+        ));
+
+        List<WebElement> menuOptionsAfterClickOutside = driver.findElements(
+                By.xpath("//a[contains(@class,'cds--switcher__item-link')]")
+        );
+
+        boolean menuStillVisible = !menuOptionsAfterClickOutside.isEmpty() &&
+                menuOptionsAfterClickOutside.get(0).isDisplayed();
+
+        Assertions.assertFalse(menuStillVisible,
+                "Menu should close when clicking outside");
+    }
+
+    @Test
+    @Order(11)
+    @Tag("regression")
+    @DisplayName("NEG_AC4 - 01 Default language should not change after logout/login")
+    void verifyDefaultLanguagePersistsAfterRelogin() {
+
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(15));
+
+        //1.Login
+        LoginPage loginPage = new LoginPage(driver);
+        loginPage.login();
+
+        //2.Verify default language is English
+        wait.until(ExpectedConditions.elementToBeClickable(
+                By.cssSelector("div[data-extension-id='user-menu-button'] button")
+        )).click();
+
+        String languageBeforeLogout = wait.until(
+                ExpectedConditions.visibilityOfElementLocated(
+                        By.xpath("//div[@data-extension-id='change-language']//p")
+                )
+        ).getText().trim();
+
+        Assertions.assertEquals("English", languageBeforeLogout,
+                "Default language should be English before logout");
+
+        //Close menu
+        wait.until(ExpectedConditions.elementToBeClickable(
+                By.cssSelector("div[data-extension-id='user-menu-button'] button")
+        )).click();
+
+        //3.Logout
+        wait.until(ExpectedConditions.elementToBeClickable(
+                By.cssSelector("div[data-extension-id='user-menu-button'] button")
+        )).click();
+
+        wait.until(ExpectedConditions.elementToBeClickable(
+                By.xpath("//button[normalize-space()='Logout']")
+        )).click();
+
+        wait.until(ExpectedConditions.urlContains("/login"));
+
+        //4.Login again
+        //TODO : using global variable here too
+        loginPage = new LoginPage(driver);
+        loginPage.login();
+
+        //5.Verify language is still English
+        wait.until(ExpectedConditions.elementToBeClickable(
+                By.cssSelector("div[data-extension-id='user-menu-button'] button")
+        )).click();
+
+        String languageAfterLogin = wait.until(
+                ExpectedConditions.visibilityOfElementLocated(
+                        By.xpath("//div[@data-extension-id='change-language']//p")
+                )
+        ).getText().trim();
+
+        Assertions.assertEquals("English", languageAfterLogin,
+                "Language should remain English after logout and login");
+    }
+
+    @Test
+    @Order(12)
+    @Tag("regression")
+    @DisplayName("NEG_AC5 - 01 Cancel language change should NOT update language")
+    void verifyCancelLanguageChangeDoesNotUpdateLanguage() {
+
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(15));
+
+        //1.Login
+        LoginPage loginPage = new LoginPage(driver);
+        loginPage.login();
+
+        // Open My Account menu
+        wait.until(ExpectedConditions.elementToBeClickable(
+                By.cssSelector("div[data-extension-id='user-menu-button'] button")
+        )).click();
+
+        // Note current language
+        String currentLanguage = wait.until(ExpectedConditions.visibilityOfElementLocated(
+                By.xpath("//div[@data-extension-id='change-language']//p")
+        )).getText().trim();
+
+        //2.Click Change → select a different language
+        wait.until(ExpectedConditions.elementToBeClickable(
+                By.xpath("//div[@data-extension-id='change-language']//button[normalize-space()='Change']")
+        )).click();
+
+        WebElement dialog = wait.until(ExpectedConditions.visibilityOfElementLocated(
+                By.cssSelector("div[role='dialog']")
+        ));
+        Assertions.assertTrue(dialog.isDisplayed(), "Language dialog should be displayed");
+
+        // Get visible language options
+        List<WebElement> optionElements = wait.until(
+                ExpectedConditions.visibilityOfAllElementsLocatedBy(
+                        By.xpath("//span[@class='cds--radio-button__label-text']")
+                )
+        );
+
+        // Pick a different language (not the current one)
+        WebElement differentLanguage = optionElements.stream()
+                .filter(e -> {
+                    String t = e.getText().trim();
+                    return !t.isEmpty()
+                            && !t.equalsIgnoreCase("Change")
+                            && !t.equalsIgnoreCase("Cancel")
+                            && !t.equalsIgnoreCase(currentLanguage);
+                })
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("No different language found to select"));
+
+        String selectedLanguage = differentLanguage.getText().trim();
+        differentLanguage.click();
+
+        //3.Click Cancel (or close popup) without saving
+        wait.until(ExpectedConditions.elementToBeClickable(
+                By.xpath("//button[normalize-space()='Cancel']")
+        )).click();
+
+        //4.Open menu again
+        wait.until(ExpectedConditions.elementToBeClickable(
+                By.cssSelector("div[data-extension-id='user-menu-button'] button")
+        )).click();
+
+        //5.Verify language did NOT change
+        String languageAfterCancel = wait.until(ExpectedConditions.visibilityOfElementLocated(
+                By.xpath("//div[@data-extension-id='change-language']//p")
+        )).getText().trim();
+
+        Assertions.assertEquals(currentLanguage, languageAfterCancel,
+                "Language should NOT update when user cancels the change. Selected (not saved): " + selectedLanguage);
     }
 }
 
