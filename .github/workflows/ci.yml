@@ -56,8 +56,8 @@ jobs:
 
     env:
       API_BASE_URL: https://demo.openmrs.org/openmrs/ws/rest/v1
-      USERNAME: admin
-      PASSWORD: Admin123
+      APP_USERNAME: admin
+      APP_PASSWORD: Admin123
 
     steps:
       - name: Checkout repository
