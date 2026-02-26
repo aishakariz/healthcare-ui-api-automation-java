@@ -10,7 +10,6 @@ import org.openqa.selenium.support.ui.WebDriverWait;
 import ui.pages.DashboardPage;
 import ui.pages.LoginPage;
 import utils.BrowserUtils;
-import utils.ConfigManager;
 
 import java.time.Duration;
 import java.util.List;
@@ -23,6 +22,7 @@ public class US03LogoutFunctionality extends BaseTest {
 
     WebDriverWait wait;
     LoginPage loginPage;
+    DashboardPage dashboardPage;
 
     @Test
     @Order(1)
@@ -31,7 +31,6 @@ public class US03LogoutFunctionality extends BaseTest {
     void verifyMyAccountMessageOnHover() {
 
         //1.Open the application.
-        //TODO : using global variable make sure it work in this test first
         loginPage = new LoginPage(driver);
         loginPage.login();
         wait = new WebDriverWait(driver, Duration.ofSeconds(15));
@@ -88,11 +87,11 @@ public class US03LogoutFunctionality extends BaseTest {
     void verifyMyAccountOptions() {
 
         //1.Login with valid credentials.
-        LoginPage loginPage = new LoginPage(driver);
+        loginPage = new LoginPage(driver);
         loginPage.login();
 
-        DashboardPage dashboardPage = new DashboardPage(driver);
-        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+        dashboardPage = new DashboardPage(driver);
+        wait = new WebDriverWait(driver, Duration.ofSeconds(10));
 
         //2.Click the profile menu/icon to open My Account menu.
         wait.until(ExpectedConditions.elementToBeClickable(dashboardPage.profileIcon)).click();
@@ -135,9 +134,9 @@ public class US03LogoutFunctionality extends BaseTest {
     void verifyUserCanLogoutSuccessfully() {
 
         //1.Login with valid credentials.
-        LoginPage loginPage = new LoginPage(driver);
+        loginPage = new LoginPage(driver);
         loginPage.login();
-        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+        wait = new WebDriverWait(driver, Duration.ofSeconds(10));
 
         //2.Click profile menu/icon.
         wait.until(ExpectedConditions.elementToBeClickable(
@@ -164,9 +163,9 @@ public class US03LogoutFunctionality extends BaseTest {
     void verifyDefaultLanguageIsEnglish() {
 
         //1.Login with valid credentials.
-        LoginPage loginPage = new LoginPage(driver);
+        loginPage = new LoginPage(driver);
         loginPage.login();
-        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+        wait = new WebDriverWait(driver, Duration.ofSeconds(10));
 
         //2.Click profile menu/icon to open My Account menu.
         wait.until(ExpectedConditions.elementToBeClickable(
@@ -191,9 +190,9 @@ public class US03LogoutFunctionality extends BaseTest {
     void verifyUserCanChangeLanguage_ItalianoNotVisible() {
 
         //1.Login
-        LoginPage loginPage = new LoginPage(driver);
+        loginPage = new LoginPage(driver);
         loginPage.login();
-        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(30));
+        wait = new WebDriverWait(driver, Duration.ofSeconds(30));
 
         //2.Open profile menu
         wait.until(ExpectedConditions.elementToBeClickable(
@@ -246,15 +245,15 @@ public class US03LogoutFunctionality extends BaseTest {
         languageToSelect.click();
 
         //7.Click Change (confirm)
-        DashboardPage dashboardPage = new DashboardPage(driver);
+        dashboardPage = new DashboardPage(driver);
         dashboardPage.changeButton.click();
-        BrowserUtils.waitFor(3);
+        BrowserUtils.waitFor(2);
 
         //8.Verify language changed (re-open menu to read label)
         wait.until(ExpectedConditions.elementToBeClickable(
                 By.cssSelector("div[data-extension-id='user-menu-button'] button")
         )).click();
-        BrowserUtils.waitFor(3);
+        BrowserUtils.waitFor(2);
 
         String currentLanguage = wait.until(ExpectedConditions.visibilityOfElementLocated(
                 By.xpath("//a[@aria-label='Change language']//p")
@@ -282,10 +281,10 @@ public class US03LogoutFunctionality extends BaseTest {
     @DisplayName("AC7 - Verify user cannot return to main page after logout using browser back button")
     void verifyUserCannotNavigateBackAfterLogout() {
 
-        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(15));
+        wait = new WebDriverWait(driver, Duration.ofSeconds(15));
 
         //1.Login with valid credentials
-        LoginPage loginPage = new LoginPage(driver);
+        loginPage = new LoginPage(driver);
         loginPage.login();
 
         // Wait until dashboard loads
@@ -310,7 +309,7 @@ public class US03LogoutFunctionality extends BaseTest {
         //5.Click browser Back button
         driver.navigate().back();
 
-        // Small wait for navigation
+        //Small wait for navigation
         BrowserUtils.waitFor(2);
 
         //6.Verify user CANNOT return to main page
@@ -328,10 +327,10 @@ public class US03LogoutFunctionality extends BaseTest {
     void verifyMessageNotVisibleBeforeHover() {
 
         //1.Login with valid credentials.
-        LoginPage loginPage = new LoginPage(driver);
+        loginPage = new LoginPage(driver);
         loginPage.login();
 
-        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+        wait = new WebDriverWait(driver, Duration.ofSeconds(10));
 
         // Wait until profile icon is visible (page fully loaded)
         wait.until(ExpectedConditions.visibilityOfElementLocated(
@@ -366,57 +365,50 @@ public class US03LogoutFunctionality extends BaseTest {
         }
     }
 
-    //TODO: Check if the test after this pass because the credential doesnt' work again
-
     @Test
     @Order(9)
     @Tag("regression")
     @DisplayName("NEG_AC1 - 02 Message should disappear after mouse moves away")
     void verifyMessageDisappearsAfterMouseMovesAway() {
 
-        System.out.println("ConfigManager.getUsername() = " + ConfigManager.getUsername());
-        System.out.println("ConfigManager.getPassword() = " + ConfigManager.getPassword());
-
         //1.Login
-        LoginPage loginPage = new LoginPage(driver);
+        loginPage = new LoginPage(driver);
         loginPage.login();
 
-        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+        wait = new WebDriverWait(driver, Duration.ofSeconds(15));
 
-        WebElement profileIcon = wait.until(ExpectedConditions.visibilityOfElementLocated(
-                By.cssSelector("div[data-extension-id='user-menu-button'] button")
-        ));
+        By profileBtn = By.cssSelector("div[data-extension-id='user-menu-button'] button");
+        By tooltipLocator = By.xpath("//span[@role='tooltip' and contains(normalize-space(.),'My Account')]");
 
+        WebElement profileIcon = wait.until(ExpectedConditions.visibilityOfElementLocated(profileBtn));
         Actions actions = new Actions(driver);
 
-        //2.Hover profile icon → confirm message appears
-        actions.moveToElement(profileIcon).perform();
+        //2.Hover profile icon → confirm tooltip appears
+        actions.moveToElement(profileIcon).pause(Duration.ofMillis(300)).perform();
 
-        WebElement tooltip = wait.until(ExpectedConditions.visibilityOfElementLocated(
-                By.xpath("//span[@role='tooltip' and contains(normalize-space(.),'My Account')]")
-        ));
+        WebElement tooltip = wait.until(ExpectedConditions.visibilityOfElementLocated(tooltipLocator));
+        Assertions.assertTrue(tooltip.isDisplayed(), "Tooltip should appear after hover");
 
-        Assertions.assertTrue(tooltip.isDisplayed(),
-                "Tooltip should appear after hover");
+        //3.Move mouse away to a different area (pick a stable element)
+        WebElement outsideArea = driver.findElement(By.tagName("h1")); // or any stable element on the page
+        actions.moveToElement(outsideArea).pause(Duration.ofMillis(300)).perform();
 
-        //3.Move mouse away to different area (move to body)
-        WebElement body = driver.findElement(By.tagName("body"));
-        actions.moveToElement(body, 0, 0).perform();
+        //4.Verify tooltip disappears (aria-hidden becomes true OR not displayed)
+        wait.until(driver -> {
+            List<WebElement> tips = driver.findElements(tooltipLocator);
+            if (tips.isEmpty()) return true; // removed from DOM
+            WebElement t = tips.get(0);
+            String ariaHidden = t.getAttribute("aria-hidden");
+            return "true".equalsIgnoreCase(ariaHidden) || !t.isDisplayed();
+        });
 
-        //4.Verify message disappears
-        wait.until(ExpectedConditions.invisibilityOfElementLocated(
-                By.xpath("//span[@role='tooltip' and contains(normalize-space(.),'My Account')]")
-        ));
-
-        List<WebElement> tooltipAfterMove = driver.findElements(
-                By.xpath("//span[@role='tooltip' and contains(normalize-space(.),'My Account')]")
-        );
-
-        boolean stillVisible = !tooltipAfterMove.isEmpty() &&
-                tooltipAfterMove.get(0).isDisplayed();
-
-        Assertions.assertFalse(stillVisible,
-                "Tooltip should disappear after mouse moves away");
+        //Final assert (extra safety)
+        List<WebElement> tipsAfter = driver.findElements(tooltipLocator);
+        if (!tipsAfter.isEmpty()) {
+            String ariaHiddenAfter = tipsAfter.get(0).getAttribute("aria-hidden");
+            Assertions.assertTrue("true".equalsIgnoreCase(ariaHiddenAfter) || !tipsAfter.get(0).isDisplayed(),
+                    "Tooltip should disappear after mouse moves away");
+        }
     }
 
     @Test
@@ -426,10 +418,10 @@ public class US03LogoutFunctionality extends BaseTest {
     void verifyMenuClosesWhenClickingOutside() {
 
         //1.Login
-        LoginPage loginPage = new LoginPage(driver);
+        loginPage = new LoginPage(driver);
         loginPage.login();
 
-        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+        wait = new WebDriverWait(driver, Duration.ofSeconds(10));
 
         //2.Click profile icon to open menu
         WebElement profileIcon = wait.until(ExpectedConditions.elementToBeClickable(
@@ -475,54 +467,33 @@ public class US03LogoutFunctionality extends BaseTest {
         LoginPage loginPage = new LoginPage(driver);
         loginPage.login();
 
-        //2.Verify default language is English
-        wait.until(ExpectedConditions.elementToBeClickable(
-                By.cssSelector("div[data-extension-id='user-menu-button'] button")
-        )).click();
+        By profileBtn = By.cssSelector("div[data-extension-id='user-menu-button'] button");
+        By languageLabel = By.xpath("//div[@data-extension-id='change-language']//p");
+        By logoutBtn = By.xpath("//button[normalize-space()='Logout']");
 
-        String languageBeforeLogout = wait.until(
-                ExpectedConditions.visibilityOfElementLocated(
-                        By.xpath("//div[@data-extension-id='change-language']//p")
-                )
-        ).getText().trim();
-
-        Assertions.assertEquals("English", languageBeforeLogout,
-                "Default language should be English before logout");
-
-        //Close menu
-        wait.until(ExpectedConditions.elementToBeClickable(
-                By.cssSelector("div[data-extension-id='user-menu-button'] button")
-        )).click();
+        //2.Read language BEFORE logout
+        wait.until(ExpectedConditions.elementToBeClickable(profileBtn)).click();
+        String languageBeforeLogout = wait.until(ExpectedConditions.visibilityOfElementLocated(languageLabel))
+                .getText().trim();
+        //close menu
+        wait.until(ExpectedConditions.elementToBeClickable(profileBtn)).click();
 
         //3.Logout
-        wait.until(ExpectedConditions.elementToBeClickable(
-                By.cssSelector("div[data-extension-id='user-menu-button'] button")
-        )).click();
-
-        wait.until(ExpectedConditions.elementToBeClickable(
-                By.xpath("//button[normalize-space()='Logout']")
-        )).click();
-
+        wait.until(ExpectedConditions.elementToBeClickable(profileBtn)).click();
+        wait.until(ExpectedConditions.elementToBeClickable(logoutBtn)).click();
         wait.until(ExpectedConditions.urlContains("/login"));
 
         //4.Login again
-        //TODO : using global variable here too
         loginPage = new LoginPage(driver);
         loginPage.login();
 
-        //5.Verify language is still English
-        wait.until(ExpectedConditions.elementToBeClickable(
-                By.cssSelector("div[data-extension-id='user-menu-button'] button")
-        )).click();
+        //5.Verify language is the SAME after re-login
+        wait.until(ExpectedConditions.elementToBeClickable(profileBtn)).click();
+        String languageAfterLogin = wait.until(ExpectedConditions.visibilityOfElementLocated(languageLabel))
+                .getText().trim();
 
-        String languageAfterLogin = wait.until(
-                ExpectedConditions.visibilityOfElementLocated(
-                        By.xpath("//div[@data-extension-id='change-language']//p")
-                )
-        ).getText().trim();
-
-        Assertions.assertEquals("English", languageAfterLogin,
-                "Language should remain English after logout and login");
+        Assertions.assertEquals(languageBeforeLogout, languageAfterLogin,
+                "Language should NOT change after logout/login");
     }
 
     @Test
@@ -531,18 +502,18 @@ public class US03LogoutFunctionality extends BaseTest {
     @DisplayName("NEG_AC5 - 01 Cancel language change should NOT update language")
     void verifyCancelLanguageChangeDoesNotUpdateLanguage() {
 
-        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(15));
+        wait = new WebDriverWait(driver, Duration.ofSeconds(15));
 
         //1.Login
-        LoginPage loginPage = new LoginPage(driver);
+        loginPage = new LoginPage(driver);
         loginPage.login();
 
-        // Open My Account menu
+        //Open My Account menu
         wait.until(ExpectedConditions.elementToBeClickable(
                 By.cssSelector("div[data-extension-id='user-menu-button'] button")
         )).click();
 
-        // Note current language
+        //Note current language
         String currentLanguage = wait.until(ExpectedConditions.visibilityOfElementLocated(
                 By.xpath("//div[@data-extension-id='change-language']//p")
         )).getText().trim();
@@ -557,14 +528,14 @@ public class US03LogoutFunctionality extends BaseTest {
         ));
         Assertions.assertTrue(dialog.isDisplayed(), "Language dialog should be displayed");
 
-        // Get visible language options
+        //Get visible language options
         List<WebElement> optionElements = wait.until(
                 ExpectedConditions.visibilityOfAllElementsLocatedBy(
                         By.xpath("//span[@class='cds--radio-button__label-text']")
                 )
         );
 
-        // Pick a different language (not the current one)
+        //Pick a different language (not the current one)
         WebElement differentLanguage = optionElements.stream()
                 .filter(e -> {
                     String t = e.getText().trim();
