@@ -150,6 +150,7 @@ jobs:
   # ==================================================
   # 4️⃣ PUBLISH ALLURE REPORT
   # ==================================================
+
 publish-report:
   needs: ui-tests
   runs-on: ubuntu-latest
@@ -158,10 +159,15 @@ publish-report:
   steps:
     - uses: actions/checkout@v4
 
-    - name: Download Allure Artifacts
+    - name: Download All Artifacts
       uses: actions/download-artifact@v4
       with:
-        path: ./allure-results
+        path: artifacts
+
+    - name: Merge Allure Results
+      run: |
+        mkdir merged-results
+        find artifacts -type f -name "*.json" -exec cp {} merged-results/ \;
 
     - name: Install Allure CLI
       run: |
@@ -170,7 +176,7 @@ publish-report:
 
     - name: Generate Allure HTML Report
       run: |
-        allure generate ./allure-results --clean -o ./allure-report
+        allure generate merged-results --clean -o allure-report
 
     - name: Deploy to GitHub Pages
       uses: peaceiris/actions-gh-pages@v3
