@@ -32,7 +32,9 @@
 #  management, and automated reporting.
 #
 # ==============================================================
-
+# ==============================================================
+#  Healthcare UI & API Automation - Enterprise CI/CD Pipeline
+# ==============================================================
 
 name: Healthcare Automation Enterprise CI
 
@@ -46,18 +48,21 @@ on:
   schedule:
     - cron: '0 6 * * *'   # 1 AM Toronto (6 AM UTC)
 
+# ==================================================
+# GLOBAL ENVIRONMENT VARIABLES (VERY IMPORTANT)
+# ==================================================
+env:
+  API_BASE_URL: https://demo.openmrs.org/openmrs/ws/rest/v1
+  APP_USERNAME: admin
+  APP_PASSWORD: Admin123
+
 jobs:
 
   # ==================================================
-  # 1️⃣ BUILD STAGE (Fail Fast)
+  # 1️⃣ BUILD STAGE
   # ==================================================
   build:
     runs-on: ubuntu-latest
-
-    env:
-      API_BASE_URL: https://demo.openmrs.org/openmrs/ws/rest/v1
-      APP_USERNAME: admin
-      APP_PASSWORD: Admin123
 
     steps:
       - name: Checkout repository
@@ -90,17 +95,14 @@ jobs:
           java-version: 17
           cache: maven
 
-      # PR → Smoke Only
       - name: Run Smoke Tests (PR)
         if: github.event_name == 'pull_request'
         run: mvn test -DincludeTags=smoke
 
-      # Push → API Tests
-      - name: Run API Tests
+      - name: Run API Tests (Push)
         if: github.event_name == 'push'
         run: mvn test -DincludeTags=api
 
-      # Nightly → Full Regression
       - name: Run API Regression (Nightly)
         if: github.event_name == 'schedule'
         run: mvn test -DincludeTags=regression
@@ -114,7 +116,7 @@ jobs:
 
 
   # ==================================================
-  # 3️⃣ UI TESTS (Parallel Chrome + Firefox)
+  # 3️⃣ UI TESTS (Parallel Browsers)
   # ==================================================
   ui-tests:
     needs: api-tests
@@ -146,33 +148,46 @@ jobs:
 
 
   # ==================================================
-  # 4️⃣ PUBLISH ALLURE REPORT TO GITHUB PAGES
+  # 4️⃣ PUBLISH ALLURE REPORT
   # ==================================================
-  publish-report:
-    needs: ui-tests
-    runs-on: ubuntu-latest
-    if: always()
 
-    steps:
-      - uses: actions/checkout@v4
+publish-report:
+  needs: ui-tests
+  runs-on: ubuntu-latest
+  if: always()
 
-      - name: Download All Allure Artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: allure-results
+  steps:
+    - uses: actions/checkout@v4
 
-      - name: Generate Allure Report
-        run: mvn allure:report
+    - name: Download All Artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: artifacts
 
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v3
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./target/site/allure-maven-plugin
+    - name: Merge Allure Results
+      run: |
+        mkdir merged-results
+        find artifacts -type f -name "*.json" -exec cp {} merged-results/ \;
 
+    - name: Install Allure CLI
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y allure
+
+    - name: Generate Allure HTML Report
+      run: |
+        allure generate merged-results --clean -o allure-report
+
+    - name: Deploy to GitHub Pages
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_branch: gh-pages
+        publish_dir: ./allure-report
+        force_orphan: true
 
   # ==================================================
-  # 5️⃣ SLACK NOTIFICATION
+  # 5️⃣ SLACK NOTIFICATIONS
   # ==================================================
 
   notify-success:
@@ -185,23 +200,9 @@ jobs:
         run: |
           curl -X POST -H 'Content-type: application/json' \
           --data '{
-            "blocks": [
-              {
-                "type": "header",
-                "text": { "type": "plain_text", "text": "✅ CI Pipeline Passed" }
-              },
-              {
-                "type": "section",
-                "fields": [
-                  { "type": "mrkdwn", "text": "*Repository:*\n${{ github.repository }}" },
-                  { "type": "mrkdwn", "text": "*Branch:*\n${{ github.ref_name }}" },
-                  { "type": "mrkdwn", "text": "*Run ID:*\n${{ github.run_id }}" }
-                ]
-              }
-            ]
+            "text": "✅ CI Pipeline Passed\nRepository: ${{ github.repository }}\nBranch: ${{ github.ref_name }}\nRun ID: ${{ github.run_id }}"
           }' \
           ${{ secrets.SLACK_WEBHOOK_URL }}
-
 
   notify-failure:
     needs: [api-tests, ui-tests]
@@ -213,25 +214,11 @@ jobs:
         run: |
           curl -X POST -H 'Content-type: application/json' \
           --data '{
-            "blocks": [
-              {
-                "type": "header",
-                "text": { "type": "plain_text", "text": "❌ CI Pipeline Failed" }
-              },
-              {
-                "type": "section",
-                "fields": [
-                  { "type": "mrkdwn", "text": "*Repository:*\n${{ github.repository }}" },
-                  { "type": "mrkdwn", "text": "*Branch:*\n${{ github.ref_name }}" },
-                  { "type": "mrkdwn", "text": "*Run ID:*\n${{ github.run_id }}" }
-                ]
-              },
-              {
-                "type": "section",
-                "text": {
-                  "type": "mrkdwn",
-                  "text": "Check GitHub Actions logs for details."
-                }
+            "text": "❌ CI Pipeline Failed\nRepository: ${{ github.repository }}\nBranch: ${{ github.ref_name }}\nRun ID: ${{ github.run_id }}"
+          }' \
+          ${{ secrets.SLACK_WEBHOOK_URL }}
+
+
               }
             ]
           }' \
