@@ -1,14 +1,56 @@
-name: Java CI with Maven
+# ==============================================================
+#  Healthcare UI & API Automation - Enterprise CI/CD Pipeline
+# ==============================================================
+#
+#  Author: Aisha |Michael|Aida|Sunisa|Berrat|Pedro
+#  Project: healthcare-ui-api-automation-java
+#  Tech Stack: Java 17 | JUnit 5 | Maven | Selenium | REST Assured | Allure
+#
+#  --------------------------------------------------------------
+#  Pipeline Overview
+#  --------------------------------------------------------------
+#  ✔ Build stage (fail fast compilation)
+#  ✔ API test stage (smoke on PR, regression on schedule)
+#  ✔ UI test stage (parallel execution: Chrome & Firefox)
+#  ✔ Retry logic via Maven Surefire
+#  ✔ Nightly regression (1 AM Toronto)
+#  ✔ Allure report generation & GitHub Pages publishing
+#  ✔ Slack notifications (success & failure)
+#
+#  Trigger Strategy
+#  --------------------------------------------------------------
+#  - Pull Request  → Smoke tests only
+#  - Push to master → API + UI suites
+#  - Nightly (cron) → Full regression suite
+#
+#  Architecture Pattern
+#  --------------------------------------------------------------
+#  Build → API Tests → UI Tests (Matrix) → Report → Notifications
+#
+#  This pipeline follows enterprise-grade CI/CD best practices
+#  including fail-fast strategy, parallel execution, artifact
+#  management, and automated reporting.
+#
+# ==============================================================
+
+
+name: Healthcare Automation Enterprise CI
 
 on:
   push:
-    branches:
-      - master
+    branches: [ master ]
+
   pull_request:
-    branches:
-      - master
+    branches: [ master ]
+
+  schedule:
+    - cron: '0 6 * * *'   # 1 AM Toronto (6 AM UTC)
 
 jobs:
+
+  # ==================================================
+  # 1️⃣ BUILD STAGE (Fail Fast)
+  # ==================================================
   build:
     runs-on: ubuntu-latest
 
@@ -21,11 +63,176 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Java 17
+      - name: Setup Java 17
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 17
+          cache: maven
 
-      - name: Build and Test
-        run: mvn clean test
+      - name: Compile Project
+        run: mvn clean compile
+
+
+  # ==================================================
+  # 2️⃣ API TESTS
+  # ==================================================
+  api-tests:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+          cache: maven
+
+      # PR → Smoke Only
+      - name: Run Smoke Tests (PR)
+        if: github.event_name == 'pull_request'
+        run: mvn test -DincludeTags=smoke
+
+      # Push → API Tests
+      - name: Run API Tests
+        if: github.event_name == 'push'
+        run: mvn test -DincludeTags=api
+
+      # Nightly → Full Regression
+      - name: Run API Regression (Nightly)
+        if: github.event_name == 'schedule'
+        run: mvn test -DincludeTags=regression
+
+      - name: Upload API Allure Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-results-api
+          path: target/allure-results
+
+
+  # ==================================================
+  # 3️⃣ UI TESTS (Parallel Chrome + Firefox)
+  # ==================================================
+  ui-tests:
+    needs: api-tests
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chrome, firefox]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+          cache: maven
+
+      - name: Run UI Tests
+        run: mvn test -DincludeTags=ui -Dbrowser=${{ matrix.browser }}
+
+      - name: Upload UI Allure Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-results-ui-${{ matrix.browser }}
+          path: target/allure-results
+
+
+  # ==================================================
+  # 4️⃣ PUBLISH ALLURE REPORT TO GITHUB PAGES
+  # ==================================================
+  publish-report:
+    needs: ui-tests
+    runs-on: ubuntu-latest
+    if: always()
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download All Allure Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: allure-results
+
+      - name: Generate Allure Report
+        run: mvn allure:report
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./target/site/allure-maven-plugin
+
+
+  # ==================================================
+  # 5️⃣ SLACK NOTIFICATION
+  # ==================================================
+
+  notify-success:
+    needs: [api-tests, ui-tests]
+    runs-on: ubuntu-latest
+    if: success()
+
+    steps:
+      - name: Send Slack Success Message
+        run: |
+          curl -X POST -H 'Content-type: application/json' \
+          --data '{
+            "blocks": [
+              {
+                "type": "header",
+                "text": { "type": "plain_text", "text": "✅ CI Pipeline Passed" }
+              },
+              {
+                "type": "section",
+                "fields": [
+                  { "type": "mrkdwn", "text": "*Repository:*\n${{ github.repository }}" },
+                  { "type": "mrkdwn", "text": "*Branch:*\n${{ github.ref_name }}" },
+                  { "type": "mrkdwn", "text": "*Run ID:*\n${{ github.run_id }}" }
+                ]
+              }
+            ]
+          }' \
+          ${{ secrets.SLACK_WEBHOOK_URL }}
+
+
+  notify-failure:
+    needs: [api-tests, ui-tests]
+    runs-on: ubuntu-latest
+    if: failure()
+
+    steps:
+      - name: Send Slack Failure Message
+        run: |
+          curl -X POST -H 'Content-type: application/json' \
+          --data '{
+            "blocks": [
+              {
+                "type": "header",
+                "text": { "type": "plain_text", "text": "❌ CI Pipeline Failed" }
+              },
+              {
+                "type": "section",
+                "fields": [
+                  { "type": "mrkdwn", "text": "*Repository:*\n${{ github.repository }}" },
+                  { "type": "mrkdwn", "text": "*Branch:*\n${{ github.ref_name }}" },
+                  { "type": "mrkdwn", "text": "*Run ID:*\n${{ github.run_id }}" }
+                ]
+              },
+              {
+                "type": "section",
+                "text": {
+                  "type": "mrkdwn",
+                  "text": "Check GitHub Actions logs for details."
+                }
+              }
+            ]
+          }' \
+          ${{ secrets.SLACK_WEBHOOK_URL }}
