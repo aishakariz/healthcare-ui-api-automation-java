@@ -6,8 +6,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.openqa.selenium.OutputType;
 import org.openqa.selenium.TakesScreenshot;
 import org.openqa.selenium.WebDriver;
-import org.openqa.selenium.chrome.ChromeDriver;
-import org.openqa.selenium.chrome.ChromeOptions;
 import utils.ConfigManager;
 
 import java.io.ByteArrayInputStream;
@@ -15,37 +13,43 @@ import java.time.Duration;
 
 public class BaseTest {
 
-    protected static WebDriver driver;
+    // Keep this so our existing code still works
+    protected WebDriver driver;
 
     @BeforeEach
     public void setUp() {
 
-        ChromeOptions options = new ChromeOptions();
-        options.addArguments("--headless=new");
-        options.addArguments("--no-sandbox");
-        options.addArguments("--disable-dev-shm-usage");
-        options.addArguments("--window-size=1920,1080");
+        // Initialize thread-safe driver
+        DriverManager.initDriver();
 
-        driver = new ChromeDriver();
-        driver.manage().window().maximize();
+        // Bridge (so old code using 'driver' still works)
+        driver = DriverManager.getDriver();
+
         driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(10));
+        driver.manage().window().maximize();
+
         driver.get(ConfigManager.getBaseUrl());
     }
 
     @AfterEach
     public void tearDown() {
-        if (driver != null) {
-            driver.quit();
-            driver = null;
+
+        if (DriverManager.getDriver() != null) {
+            DriverManager.quitDriver();
         }
     }
 
-    public static void attachScreenShot() {
+    // Screenshot method for Allure
+    public static void attachScreenShot(String name) {
 
-        if (driver != null) {
-            byte[] screenshot = ((TakesScreenshot) driver)
+        WebDriver currentDriver = DriverManager.getDriver();
+
+        if (currentDriver != null) {
+
+            byte[] screenshot = ((TakesScreenshot) currentDriver)
                     .getScreenshotAs(OutputType.BYTES);
-            Allure.addAttachment("Screenshot",
+
+            Allure.addAttachment(name,
                     new ByteArrayInputStream(screenshot));
         }
     }

@@ -12,7 +12,9 @@ target/
 # Test reports
 test-output/
 surefire-reports/
+.allure/
 allure-results/
+allure-report/
 
 # OS
 .DS_Store
