@@ -35,6 +35,16 @@
 # ==============================================================
 #  Healthcare UI & API Automation - Enterprise CI/CD Pipeline
 # ==============================================================
+# ==============================================================
+#  Healthcare UI & API Automation - Enterprise CI/CD Pipeline
+# ==============================================================
+#  Author: Aisha | Michael | Aida | Sunisa | Berrat | Pedro
+#  Tech Stack: Java 17 | JUnit 5 | Maven | Selenium | REST Assured | Allure
+# ==============================================================
+#  Pipeline Flow:
+#  Build → API Tests → UI Tests (Matrix) → Allure Report → Slack
+# ==============================================================
+
 name: Healthcare Automation Enterprise CI
 
 on:
@@ -45,20 +55,25 @@ on:
     branches: [ master ]
 
   schedule:
-    - cron: '0 6 * * *'   # 1 AM Toronto (6 AM UTC)
+    # Nightly Regression
+    # 6:00 AM EST (UTC-5 Winter)
+    # 7:00 AM Toronto during EDT (UTC-4 Summer)
+    - cron: '0 11 * * *'
 
 env:
   API_BASE_URL: https://demo.openmrs.org/openmrs/ws/rest/v1
   APP_USERNAME: admin
   APP_PASSWORD: Admin123
 
+# ==============================================================
+# 1️⃣ BUILD STAGE
+# ==============================================================
+
 jobs:
 
-  # =============================
-  # 1️⃣ BUILD
-  # =============================
   build:
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
 
@@ -68,12 +83,13 @@ jobs:
           java-version: 17
           cache: maven
 
-      - name: Compile
+      - name: Compile Project
         run: mvn clean compile
 
-  # =============================
-  # 2️⃣ API TESTS
-  # =============================
+  # ==============================================================
+  # 2️⃣ API TEST STAGE
+  # ==============================================================
+
   api-tests:
     needs: build
     runs-on: ubuntu-latest
@@ -91,11 +107,11 @@ jobs:
         if: github.event_name == 'pull_request'
         run: mvn test -DincludeTags=smoke
 
-      - name: Run API Tests (Push)
+      - name: Run API Tests (Push to Master)
         if: github.event_name == 'push'
         run: mvn test -DincludeTags=api
 
-      - name: Run API Regression (Nightly)
+      - name: Run Full API Regression (Nightly)
         if: github.event_name == 'schedule'
         run: mvn test -DincludeTags=regression
 
@@ -106,9 +122,10 @@ jobs:
           name: allure-results-api
           path: target/allure-results
 
-  # =============================
-  # 3️⃣ UI TESTS (Parallel)
-  # =============================
+  # ==============================================================
+  # 3️⃣ UI TEST STAGE (Parallel Browsers)
+  # ==============================================================
+
   ui-tests:
     needs: api-tests
     runs-on: ubuntu-latest
@@ -142,9 +159,10 @@ jobs:
           name: allure-results-ui-${{ matrix.browser }}
           path: target/allure-results
 
-  # =============================
-  # 4️⃣ GENERATE & DEPLOY ALLURE
-  # =============================
+  # ==============================================================
+  # 4️⃣ ALLURE REPORT GENERATION & DEPLOYMENT
+  # ==============================================================
+
   publish-report:
     needs: ui-tests
     runs-on: ubuntu-latest
@@ -153,15 +171,26 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Download All Artifacts
+      - name: Download Allure Artifacts
         uses: actions/download-artifact@v4
         with:
           path: artifacts
+          merge-multiple: true
 
       - name: Merge Allure JSON Files
         run: |
-          mkdir merged-results
-          find artifacts -type f -name "*.json" -exec cp {} merged-results/ \;
+          mkdir -p merged-results
+
+          if [ -d artifacts ]; then
+            find artifacts -type f -name "*.json" -exec cp {} merged-results/ \;
+          else
+            echo "No artifacts directory found. Skipping merge."
+          fi
+
+          if [ -z "$(ls -A merged-results 2>/dev/null)" ]; then
+            echo "No Allure results found. Skipping report generation."
+            exit 0
+          fi
 
       - name: Install Allure CLI
         run: |
@@ -180,19 +209,20 @@ jobs:
           publish_dir: ./allure-report
           force_orphan: true
 
-  # =============================
+  # ==============================================================
   # 5️⃣ SLACK NOTIFICATIONS
-  # =============================
+  # ==============================================================
+
   notify-success:
     needs: [api-tests, ui-tests]
     runs-on: ubuntu-latest
     if: success()
 
     steps:
-      - name: Slack Success
+      - name: Slack Success Notification
         run: |
           curl -X POST -H 'Content-type: application/json' \
-          --data '{"text":"✅ CI Passed - ${{ github.repository }} | Branch: ${{ github.ref_name }}"}' \
+          --data '{"text":"✅ CI Passed - '"${{ github.repository }}"' | Branch: '"${{ github.ref_name }}"'"}' \
           ${{ secrets.SLACK_WEBHOOK_URL }}
 
   notify-failure:
@@ -201,8 +231,8 @@ jobs:
     if: failure()
 
     steps:
-      - name: Slack Failure
+      - name: Slack Failure Notification
         run: |
           curl -X POST -H 'Content-type: application/json' \
-          --data '{"text":"❌ CI Failed - ${{ github.repository }} | Branch: ${{ github.ref_name }}"}' \
+          --data '{"text":"❌ CI Failed - '"${{ github.repository }}"' | Branch: '"${{ github.ref_name }}"'"}' \
           ${{ secrets.SLACK_WEBHOOK_URL }}
