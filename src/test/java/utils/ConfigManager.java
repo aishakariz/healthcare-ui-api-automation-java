@@ -9,20 +9,31 @@ public class ConfigManager {
                     .ignoreIfMissing()
                     .load();
 
+    private static String getValue(String key) {
+        // 1️⃣ First check System Environment (CI)
+        String envValue = System.getenv(key);
+        if (envValue != null && !envValue.isEmpty()) {
+            return envValue;
+        }
+
+        // 2️⃣ Fallback to .env file (local)
+        return dotenv.get(key);
+    }
+
     public static String getBaseUrl() {
-        return dotenv.get("BASE_URL");
+        return getValue("BASE_URL");
     }
 
     public static String getApiBaseUrl() {
-        return dotenv.get("API_BASE_URL");
+        return getValue("API_BASE_URL");
     }
 
     public static String getUsername() {
-        return dotenv.get("APP_USERNAME");
+        return getValue("APP_USERNAME");
     }
 
     public static String getPassword() {
-        return dotenv.get("APP_PASSWORD");
+        return getValue("APP_PASSWORD");
     }
-
 }
+

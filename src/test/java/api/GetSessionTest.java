@@ -3,6 +3,8 @@ package api;
 import base.BaseApiTest;
 import base.BaseTest;
 import io.restassured.RestAssured;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import utils.ConfigManager;
 
@@ -12,7 +14,9 @@ import static org.hamcrest.Matchers.notNullValue;
 
 public class GetSessionTest extends BaseApiTest {
 
-
+    @Tag("api")
+    @Tag("smoke")
+    @DisplayName("Session API Tests")
     @Test
     void shouldAuthenticateUser(){
 
