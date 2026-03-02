@@ -35,11 +35,8 @@ public class LoginPage extends BasePage {
 
     public void login()  {
         username.sendKeys(ConfigManager.getUsername());
-        //username.sendKeys(ConfigManager.getUsername()); --> Owner
         continueButton.click();
         password.sendKeys(ConfigManager.getPassword());
-        //password.sendKeys(ConfigManager.getPassword());
         loginButton.click();
-
     }
 }
