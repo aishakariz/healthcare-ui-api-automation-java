@@ -17,8 +17,8 @@ public class LoginPage extends BasePage {
     @FindBy(id = "password")
     public WebElement password;
 
-    @FindBy(xpath = "//button[@type='button']")
-    public WebElement continueButton;
+    @FindBy(xpath = "//button[normalize-space()='Continue']")
+    public WebElement continueButton;//button[@type='button']
 
     @FindBy(xpath = "//button[@type='submit']")
     public WebElement loginButton;
@@ -33,7 +33,7 @@ public class LoginPage extends BasePage {
     @FindBy(xpath = "//a[normalize-space()='Learn more']")
     public WebElement learnMoreLink;
 
-    @FindBy(xpath = "//input[@id='password']/following::button[.//*[name()='svg']][1]")
+    @FindBy(xpath ="//input[@id='password']/following::button[.//*[name()='svg']][1]")
     public WebElement eyeIcon;
 
 
