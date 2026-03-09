@@ -3,6 +3,7 @@ package ui.pages;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.support.FindBy;
+import utils.ConfigManager;
 
 public class LoginPage extends BasePage {
 
@@ -22,23 +23,32 @@ public class LoginPage extends BasePage {
     @FindBy(xpath = "//button[@type='submit']")
     public WebElement loginButton;
 
-    @FindBy(xpath="//label[text()='Username']" )
+    @FindBy(xpath = "//label[text()='Username']")
     public WebElement usernameLabel;
 
-    @FindBy(xpath="//label[text()='Password']")
+    @FindBy(xpath = "//label[text()='Password']")
     public WebElement passwordLabel;
 
 
     @FindBy(xpath = "//a[normalize-space()='Learn more']")
     public WebElement learnMoreLink;
 
-    public void login()  {
-        username.sendKeys("admin");
+    @FindBy(xpath = "//input[@id='password']/following::button[.//*[name()='svg']][1]")
+    public WebElement eyeIcon;
+
+
+    @FindBy(xpath = "//*[@role='tooltip']")
+    public WebElement tooltip;//div[@role='tooltip']
+
+
+    public void login() {
+        username.sendKeys(ConfigManager.getUsername());
         //username.sendKeys(ConfigManager.getUsername()); --> Owner
         continueButton.click();
-        password.sendKeys("Admin123");
+        password.sendKeys(ConfigManager.getPassword());
         //password.sendKeys(ConfigManager.getPassword());
         loginButton.click();
 
     }
 }
+
