@@ -1,102 +1,70 @@
 # ==============================================================
 #  Healthcare UI & API Automation - Enterprise CI/CD Pipeline
 # ==============================================================
-#
-#  Author: Aisha |Michael|Aida|Sunisa|Berrat|Pedro
-#  Project: healthcare-ui-api-automation-java
-#  Tech Stack: Java 17 | JUnit 5 | Maven | Selenium | REST Assured | Allure
-#
-#  --------------------------------------------------------------
-#  Pipeline Overview
-#  --------------------------------------------------------------
-#  ✔ Build stage (fail fast compilation)
-#  ✔ API test stage (smoke on PR, regression on schedule)
-#  ✔ UI test stage (parallel execution: Chrome & Firefox)
-#  ✔ Retry logic via Maven Surefire
-#  ✔ Nightly regression (1 AM Toronto)
-#  ✔ Allure report generation & GitHub Pages publishing
-#  ✔ Slack notifications (success & failure)
-#
-#  Trigger Strategy
-#  --------------------------------------------------------------
-#  - Pull Request  → Smoke tests only
-#  - Push to master → API + UI suites
-#  - Nightly (cron) → Full regression suite
-#
-#  Architecture Pattern
-#  --------------------------------------------------------------
-#  Build → API Tests → UI Tests (Matrix) → Report → Notifications
-#
-#  This pipeline follows enterprise-grade CI/CD best practices
-#  including fail-fast strategy, parallel execution, artifact
-#  management, and automated reporting.
-#
-# ==============================================================
-# ==============================================================
-#  Healthcare UI & API Automation - Enterprise CI/CD Pipeline
-# ==============================================================
-# ==============================================================
-#  Healthcare UI & API Automation - Enterprise CI/CD Pipeline
-# ==============================================================
 #  Author: Aisha | Michael | Aida | Sunisa | Berrat | Pedro
 #  Tech Stack: Java 17 | JUnit 5 | Maven | Selenium | REST Assured | Allure
-# ==============================================================
-#  Pipeline Flow:
-#  Build → API Tests → UI Tests (Matrix) → Allure Report → Slack
+#
+#  ── Pipeline Flow ───────────────────────────────────────────
+#  Build → API Tests → UI Tests (Matrix) → Retry Failures
+#       → Allure Report → Slack + Email + Jira Notifications
+#
+#  ── Secrets Required (Settings → Secrets → Actions) ────────
+#  SLACK_WEBHOOK_URL  → Slack incoming webhook URL
+#  MAIL_USERNAME      → Gmail address to send from
+#  MAIL_PASSWORD      → Gmail App Password
+#  NOTIFY_EMAILS      → comma-separated: a@x.com,b@x.com,...
+#  JIRA_BASE_URL      → https://jira.cydeo.com
+#  JIRA_USERNAME      → aishaemin33@gmail.com
+#  JIRA_TOKEN      → your Jira password (never put in .env)
+#  JIRA_PROJECT_KEY   → ticket prefix on board 503, e.g. HCAUTO
 # ==============================================================
 
 name: Healthcare Automation Enterprise CI
 
 on:
   push:
-    branches: [ master ]
-
+    branches: [ '**' ]
   pull_request:
-    branches: [ master ]
-
+    branches: [ '**' ]
   schedule:
-    # Nightly Regression
-    # 6:00 AM EST (UTC-5 Winter)
-    # 7:00 AM Toronto during EDT (UTC-4 Summer)
+    # Nightly: 6 AM EST / 7 AM EDT (Toronto)
     - cron: '0 11 * * *'
 
 env:
-  API_BASE_URL: https://demo.openmrs.org/openmrs/ws/rest/v1
-  APP_USERNAME: admin
-  APP_PASSWORD: Admin123
+  API_BASE_URL:      https://demo.openmrs.org/openmrs/ws/rest/v1
+  APP_USERNAME:      admin
+  APP_PASSWORD:      Admin123
+  # Jira Server — username + password (NOT api token)
+  JIRA_BASE_URL:     ${{ secrets.JIRA_BASE_URL }}
+  JIRA_USERNAME:     ${{ secrets.JIRA_USERNAME }}
+  JIRA_TOKEN:     ${{ secrets.JIRA_TOKEN }}
+  JIRA_PROJECT_KEY:  ${{ secrets.JIRA_PROJECT_KEY }}
 
 # ==============================================================
-# 1️⃣ BUILD STAGE
+# 1️⃣  BUILD
 # ==============================================================
-
 jobs:
 
   build:
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 17
           cache: maven
-
       - name: Compile Project
         run: mvn clean compile
 
   # ==============================================================
-  # 2️⃣ API TEST STAGE
+  # 2️⃣  API TESTS
   # ==============================================================
-
   api-tests:
     needs: build
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -107,7 +75,7 @@ jobs:
         if: github.event_name == 'pull_request'
         run: mvn test -DincludeTags=smoke
 
-      - name: Run API Tests (Push to Master)
+      - name: Run API Tests (Push to master)
         if: github.event_name == 'push'
         run: mvn test -DincludeTags=api
 
@@ -115,91 +83,133 @@ jobs:
         if: github.event_name == 'schedule'
         run: mvn test -DincludeTags=regression
 
-      - name: Upload API Allure Results
+      - name: Upload Allure Results
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: allure-results-api
           path: target/allure-results
 
-  # ==============================================================
-  # 3️⃣ UI TEST STAGE (Parallel Browsers)
-  # ==============================================================
+      - name: Upload Failed Tests List
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: failed-tests-api
+          path: target/failed-tests.txt
 
+  # ==============================================================
+  # 3️⃣  UI TESTS (Chrome + Firefox parallel)
+  # ==============================================================
   ui-tests:
     needs: api-tests
     runs-on: ubuntu-latest
-
     strategy:
       fail-fast: false
       matrix:
         browser: [chrome, firefox]
-
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 17
           cache: maven
 
-      - name: Install Chrome & Firefox
+      - name: Install Browsers
         run: |
           sudo apt-get update
           sudo apt-get install -y google-chrome-stable firefox
 
       - name: Run UI Tests
         run: mvn test -DincludeTags=ui -Dbrowser=${{ matrix.browser }}
+        env:
+          BROWSER: ${{ matrix.browser }}
 
-      - name: Upload UI Allure Results
+      - name: Upload Allure Results
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: allure-results-ui-${{ matrix.browser }}
           path: target/allure-results
 
-  # ==============================================================
-  # 4️⃣ ALLURE REPORT GENERATION & DEPLOYMENT
-  # ==============================================================
+      - name: Upload Failed Tests List
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: failed-tests-ui-${{ matrix.browser }}
+          path: target/failed-tests.txt
 
+  # ==============================================================
+  # 4️⃣  RETRY FAILED TESTS
+  # ==============================================================
+  retry-failures:
+    needs: [api-tests, ui-tests]
+    runs-on: ubuntu-latest
+    if: failure()
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+          cache: maven
+
+      - name: Download Failed Test Lists
+        uses: actions/download-artifact@v4
+        with:
+          pattern: failed-tests-*
+          path: failed-artifacts
+          merge-multiple: true
+
+      - name: Merge Failed Tests
+        run: |
+          mkdir -p target
+          cat failed-artifacts/*.txt 2>/dev/null | sort -u > target/failed-tests.txt || true
+          echo "Tests to retry:"
+          cat target/failed-tests.txt
+
+      - name: Retry Failed Tests
+        run: |
+          if [ -s target/failed-tests.txt ]; then
+            mvn exec:java -Dexec.mainClass="runner.FailedTestsRunner"
+          else
+            echo "No failures to retry."
+          fi
+
+      - name: Upload Retry Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: retry-report
+          path: target/retry-report.txt
+
+  # ==============================================================
+  # 5️⃣  ALLURE REPORT → GITHUB PAGES
+  # ==============================================================
   publish-report:
-    needs: ui-tests
+    needs: [ui-tests, retry-failures]
     runs-on: ubuntu-latest
     if: always()
-
     steps:
       - uses: actions/checkout@v4
 
-      - name: Download Allure Artifacts
+      - name: Download All Allure Artifacts
         uses: actions/download-artifact@v4
         with:
           path: artifacts
           merge-multiple: true
 
-      - name: Merge Allure JSON Files
+      - name: Merge Allure Results
         run: |
           mkdir -p merged-results
-
-          if [ -d artifacts ]; then
-            find artifacts -type f -name "*.json" -exec cp {} merged-results/ \;
-          else
-            echo "No artifacts directory found. Skipping merge."
-          fi
-
-          if [ -z "$(ls -A merged-results 2>/dev/null)" ]; then
-            echo "No Allure results found. Skipping report generation."
-            exit 0
-          fi
+          find artifacts -name "*.json" -exec cp {} merged-results/ \; 2>/dev/null || true
+          [ -z "$(ls -A merged-results)" ] && echo "No results." && exit 0
 
       - name: Install Allure CLI
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y allure
+        run: npm install -g allure-commandline --save-dev
 
-      - name: Generate Allure HTML Report
-        run: |
-          allure generate merged-results --clean -o allure-report
+      - name: Generate Allure Report
+        run: allure generate merged-results --clean -o allure-report
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
@@ -210,29 +220,95 @@ jobs:
           force_orphan: true
 
   # ==============================================================
-  # 5️⃣ SLACK NOTIFICATIONS
+  # 6️⃣  NOTIFICATIONS
   # ==============================================================
-
   notify-success:
     needs: [api-tests, ui-tests]
     runs-on: ubuntu-latest
     if: success()
-
     steps:
-      - name: Slack Success Notification
+      - name: Slack — Success
         run: |
-          curl -X POST -H 'Content-type: application/json' \
-          --data '{"text":"✅ CI Passed - '"${{ github.repository }}"' | Branch: '"${{ github.ref_name }}"'"}' \
-          ${{ secrets.SLACK_WEBHOOK_URL }}
+          curl -s -X POST -H 'Content-type: application/json' \
+          --data '{
+            "text":"✅ *CI Passed* — `${{ github.repository }}`\nBranch: `${{ github.ref_name }}`\nActor: `${{ github.actor }}`\n🔗 <https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Run>"
+          }' ${{ secrets.SLACK_WEBHOOK_URL }}
+
+      - name: Email — Success
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          username: ${{ secrets.MAIL_USERNAME }}
+          password: ${{ secrets.MAIL_PASSWORD }}
+          subject: "✅ CI Passed — ${{ github.repository }} (${{ github.ref_name }})"
+          to: ${{ secrets.NOTIFY_EMAILS }}
+          from: Healthcare CI Bot <${{ secrets.MAIL_USERNAME }}>
+          html_body: |
+            <h2 style="color:#22c55e">✅ CI Pipeline Passed</h2>
+            <table style="font-family:sans-serif;font-size:14px;border-collapse:collapse">
+              <tr><td style="padding:4px 12px"><b>Repository</b></td><td>${{ github.repository }}</td></tr>
+              <tr><td style="padding:4px 12px"><b>Branch</b></td><td>${{ github.ref_name }}</td></tr>
+              <tr><td style="padding:4px 12px"><b>Triggered by</b></td><td>${{ github.actor }}</td></tr>
+            </table>
+            <br>
+            <a href="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+               style="background:#22c55e;color:white;padding:8px 18px;text-decoration:none;border-radius:4px;font-family:sans-serif">
+              View Run →
+            </a>
 
   notify-failure:
     needs: [api-tests, ui-tests]
     runs-on: ubuntu-latest
     if: failure()
-
     steps:
-      - name: Slack Failure Notification
+      - name: Slack — Failure
         run: |
-          curl -X POST -H 'Content-type: application/json' \
-          --data '{"text":"❌ CI Failed - '"${{ github.repository }}"' | Branch: '"${{ github.ref_name }}"'"}' \
-          ${{ secrets.SLACK_WEBHOOK_URL }}
+          curl -s -X POST -H 'Content-type: application/json' \
+          --data '{
+            "text":"❌ *CI Failed* — `${{ github.repository }}`\nBranch: `${{ github.ref_name }}`\nActor: `${{ github.actor }}`\n🔗 <https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Failures>"
+          }' ${{ secrets.SLACK_WEBHOOK_URL }}
+
+      - name: Email — Failure
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          username: ${{ secrets.MAIL_USERNAME }}
+          password: ${{ secrets.MAIL_PASSWORD }}
+          subject: "❌ CI Failed — ${{ github.repository }} (${{ github.ref_name }})"
+          to: ${{ secrets.NOTIFY_EMAILS }}
+          from: Healthcare CI Bot <${{ secrets.MAIL_USERNAME }}>
+          html_body: |
+            <h2 style="color:#ef4444">❌ CI Pipeline Failed</h2>
+            <table style="font-family:sans-serif;font-size:14px;border-collapse:collapse">
+              <tr><td style="padding:4px 12px"><b>Repository</b></td><td>${{ github.repository }}</td></tr>
+              <tr><td style="padding:4px 12px"><b>Branch</b></td><td>${{ github.ref_name }}</td></tr>
+              <tr><td style="padding:4px 12px"><b>Triggered by</b></td><td>${{ github.actor }}</td></tr>
+              <tr><td style="padding:4px 12px"><b>Commit</b></td><td>${{ github.sha }}</td></tr>
+            </table>
+            <br>
+            <a href="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+               style="background:#ef4444;color:white;padding:8px 18px;text-decoration:none;border-radius:4px;font-family:sans-serif">
+              View Failures →
+            </a>
+
+      # ── Auto-create Jira bug on CI failure ──
+      # Jira Server: Basic auth with username:password (NOT api token)
+      - name: Create Jira Bug — CI Failure
+        run: |
+          ENCODED=$(echo -n "${{ secrets.JIRA_USERNAME }}:${{ secrets.JIRA_PASSWORD }}" | base64)
+          curl -s -X POST \
+            -H "Authorization: Basic ${ENCODED}" \
+            -H "Content-Type: application/json" \
+            --data "{
+              \"fields\": {
+                \"project\":     { \"key\": \"${{ secrets.JIRA_PROJECT_KEY }}\" },
+                \"summary\":     \"[CI] Pipeline failure on ${{ github.ref_name }} — Run #${{ github.run_id }}\",
+                \"description\": \"CI pipeline failed.\\n\\nBranch: ${{ github.ref_name }}\\nActor: ${{ github.actor }}\\nRun: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\\n\\n_Auto-generated by CI/CD pipeline._\",
+                \"issuetype\":   { \"name\": \"Bug\" },
+                \"priority\":    { \"name\": \"High\" },
+                \"labels\":      [\"automation\", \"ci-failure\"]
+              }
+            }" \
+            "${{ secrets.JIRA_BASE_URL }}/rest/api/2/issue"
