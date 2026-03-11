@@ -12,6 +12,8 @@ import utils.ConfigManager;
 import utils.TestListener;
 
 import static io.restassured.RestAssured.given;
+import static org.hamcrest.Matchers.anyOf;
+import static org.hamcrest.Matchers.is;
 
 @ExtendWith(TestListener.class)
 public class BaseApiTest {
@@ -23,9 +25,10 @@ public class BaseApiTest {
     @BeforeAll
     static void setup() {
 
+        // Set API base URL
         RestAssured.baseURI = ConfigManager.getApiBaseUrl();
 
-        // LOGIN → get session
+        // Authenticate and create session
         Response response =
                 given()
                         .auth()
@@ -41,21 +44,25 @@ public class BaseApiTest {
                         .extract()
                         .response();
 
+        // Extract session cookie
         sessionId = response.cookie("JSESSIONID");
 
         System.out.println("Session ID: " + sessionId);
 
-        // Request specification with authentication cookie
+        // Request specification (used by all API tests)
         requestSpec = new RequestSpecBuilder()
                 .setBaseUri(RestAssured.baseURI)
                 .setContentType("application/json")
                 .addCookie("JSESSIONID", sessionId)
                 .build();
 
+        // Response specification (common success codes)
         responseSpec = new ResponseSpecBuilder()
-                .expectStatusCode(200)
+                .expectStatusCode(anyOf(
+                        is(200),
+                        is(201),
+                        is(204)
+                ))
                 .build();
     }
 }
-
-

@@ -12,7 +12,6 @@ public class DriverManager {
 
         ChromeOptions options = new ChromeOptions();
 
-        // Required for GitHub Actions (Linux)
         options.addArguments("--headless=new");
         options.addArguments("--no-sandbox");
         options.addArguments("--disable-dev-shm-usage");
@@ -26,10 +25,7 @@ public class DriverManager {
     }
 
     public static void quitDriver() {
-
-        if (driver.get() != null) {
-            driver.get().quit();
-            driver.remove();
-        }
+        driver.get().quit();
+        driver.remove();
     }
 }
