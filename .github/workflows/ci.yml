@@ -31,9 +31,10 @@ on:
     - cron: '0 11 * * *'
 
 env:
-  API_BASE_URL:      https://demo.openmrs.org/openmrs/ws/rest/v1
-  APP_USERNAME:      admin
-  APP_PASSWORD:      Admin123
+  BASE_URL: https://demo.openmrs.org/openmrs
+  API_BASE_URL: https://demo.openmrs.org/openmrs/ws/rest/v1
+  APP_USERNAME: admin
+  APP_PASSWORD: Admin123
   # Jira Server — username + password (NOT api token)
   JIRA_BASE_URL:     ${{ secrets.JIRA_BASE_URL }}
   JIRA_USERNAME:     ${{ secrets.JIRA_USERNAME }}
