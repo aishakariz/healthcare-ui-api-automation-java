@@ -1,0 +1,12 @@
+# IntelliJ
+.idea/
+
+# Maven
+target/
+
+# Environment variables
+.env
+
+# Allure
+allure-results/
+allure-report/
