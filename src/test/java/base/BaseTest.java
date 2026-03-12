@@ -16,9 +16,14 @@ public class BaseTest {
     // Keep this so our existing code still works
     protected WebDriver driver;
 
-    @BeforeEach
+    @BeforeEach ()
     public void setUp() {
 
+     //   ChromeOptions options = new ChromeOptions();
+//        options.addArguments("--headless=new");
+//        options.addArguments("--no-sandbox");
+//        options.addArguments("--disable-dev-shm-usage");
+//        options.addArguments("--window-size=1920,1080");
         // Initialize thread-safe driver
         DriverManager.initDriver();
 

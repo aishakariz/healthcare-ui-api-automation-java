@@ -4,6 +4,7 @@ import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.support.FindBy;
+import utils.ConfigManager;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
 import utils.ConfigManager;
@@ -64,3 +65,4 @@ public class LoginPage extends BasePage {
         ((JavascriptExecutor) driver).executeScript("arguments[0].click();", loginButton);
     }
 }
+
