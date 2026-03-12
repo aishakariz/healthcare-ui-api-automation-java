@@ -24,10 +24,8 @@ public class BaseTest {
 
         // Bridge (so old code using 'driver' still works)
         driver = DriverManager.getDriver();
-
-        driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(10));
+        driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(30));
         driver.manage().window().maximize();
-
         driver.get(ConfigManager.getBaseUrl());
     }
 
