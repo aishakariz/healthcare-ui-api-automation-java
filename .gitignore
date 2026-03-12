@@ -1,23 +1,12 @@
 # IntelliJ
 .idea/
-*.iml
-out/
 
 # Maven
 target/
 
-# Logs
-*.log
-
-# Test reports
-test-output/
-surefire-reports/
-allure-results/
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Local config (if contains passwords)
-config-local.properties
+# Environment variables
 .env
+
+# Allure
+allure-results/
+allure-report/

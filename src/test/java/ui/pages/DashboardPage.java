@@ -21,5 +21,4 @@ public class DashboardPage extends BasePage {
     @FindBy(xpath = "//button[@type='submit']")
     public WebElement changeButton;
 
-
 }
